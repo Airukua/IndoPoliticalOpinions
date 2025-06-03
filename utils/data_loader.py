@@ -14,6 +14,11 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+import string
+import nltk
+from nltk.corpus import stopwords
+
+nltk.download('stopwords')
 
 class DataLoader:
     """
@@ -128,6 +133,8 @@ class DataLoader:
         """
         if file_path not in self.file_paths:
             raise ValueError(f"File {file_path} is not in the list of known files.")
+        
+        stop_words = set(stopwords.words('indonesian'))
 
         emoji_pattern = re.compile(
             r"["
@@ -154,6 +161,10 @@ class DataLoader:
             .str.replace(emoji_pattern, '', regex=True)
             .str.replace(r'[\d\W_]+', ' ', regex=True)
             .str.replace(r'\s+', ' ', regex=True)
+        )
+
+        df[text_col] = df[text_col].apply(
+            lambda text: ' '.join([word for word in text.split() if word not in stop_words])
         )
         return df
 

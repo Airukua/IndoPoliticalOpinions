@@ -91,3 +91,4 @@ class ClusterEvaluator:
                 result['silhouette_score'] = self._safe_silhouette_score(self.X, kmeans.labels_)
 
             yield result
+       
