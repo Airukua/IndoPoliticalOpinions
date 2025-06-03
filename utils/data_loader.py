@@ -158,7 +158,7 @@ class DataLoader:
         df[text_col] = (
             df[text_col].astype(str)
             .str.lower()
-            .str.replace(emoji_pattern, '', regex=True)
+            .str.replace(emoji_pattern, ' ', regex=True)
             .str.replace(r'[\d\W_]+', ' ', regex=True)
             .str.replace(r'\s+', ' ', regex=True)
         )
