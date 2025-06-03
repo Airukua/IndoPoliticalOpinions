@@ -11,13 +11,13 @@
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
-from scipy.spatial.distance import cdist
+from sklearn.metrics.pairwise import euclidean_distances
 
 
 class ClusterEvaluator:
     """
     Evaluates KMeans clustering performance across different cluster counts.
-    
+
     Attributes:
         X (np.ndarray): Feature matrix for clustering.
         cluster_range (Iterable[int]): Range of cluster counts to evaluate.
@@ -25,44 +25,42 @@ class ClusterEvaluator:
     """
 
     def __init__(self, X: np.ndarray, cluster_range, use_silhouette: bool = True):
-        """
-        Initializes the evaluator with data and configuration.
-
-        Args:
-            X (np.ndarray): Feature data for clustering.
-            cluster_range (Iterable[int]): Range/list of cluster counts to test.
-            use_silhouette (bool): Whether to compute silhouette scores.
-        """
         self.X = X
         self.cluster_range = cluster_range
         self.use_silhouette = use_silhouette
 
     @staticmethod
-    def _safe_silhouette_score(X: np.ndarray, labels: np.ndarray, sample_size: int = 1000, random_state: int = 0) -> float:
+    def _safe_silhouette_score(
+        X: np.ndarray,
+        labels: np.ndarray,
+        sample_size: int = 1000,
+        random_state: int = 0
+    ) -> float:
         """
-        Computes the silhouette score safely, ensuring there is label diversity.
-
-        Args:
-            X (np.ndarray): Input feature matrix.
-            labels (np.ndarray): Cluster labels.
-            sample_size (int): Number of samples to use.
-            random_state (int): Seed for reproducibility.
+        Computes the silhouette score safely, ensuring cluster diversity and avoiding
+        memory issues on large datasets.
 
         Returns:
-            float: Silhouette score or 0.0 if not computable.
+            float: Silhouette score, or 0.0 if not computable.
         """
         if len(np.unique(labels)) < 2:
             return 0.0
-        return silhouette_score(X, labels, sample_size=min(sample_size, X.shape[0]), random_state=random_state)
 
-    def evaluate_kmeans(self, n_init: int = 10, max_iter: int = 300, random_state: int = None):
+        try:
+            if X.shape[0] > sample_size:
+                return silhouette_score(X, labels, sample_size=sample_size, random_state=random_state)
+            return silhouette_score(X, labels)
+        except Exception:
+            return 0.0
+
+    def evaluate_kmeans(
+        self,
+        n_init: int = 10,
+        max_iter: int = 300,
+        random_state: int = None
+    ):
         """
         Evaluates KMeans clustering over a range of cluster counts.
-
-        Args:
-            n_init (int): Number of KMeans initializations.
-            max_iter (int): Maximum number of iterations.
-            random_state (int): Seed for reproducibility.
 
         Yields:
             dict: {
@@ -93,34 +91,3 @@ class ClusterEvaluator:
                 result['silhouette_score'] = self._safe_silhouette_score(self.X, kmeans.labels_)
 
             yield result
-
-    def cluster_inference(self, X_new: np.ndarray, centers: np.ndarray) -> dict:
-        """
-        Assigns new samples to the closest cluster center and evaluates the clustering.
-
-        Args:
-            X_new (np.ndarray): New input data.
-            centers (np.ndarray): Precomputed cluster centers.
-
-        Returns:
-            dict: {
-                'labels': np.ndarray,
-                'inertia': float,
-                'silhouette_score': float
-            }
-        """
-        distances = cdist(X_new, centers, metric='euclidean')
-        labels = np.argmin(distances, axis=1)
-
-        inertia = np.sum((np.linalg.norm(X_new - centers[labels], axis=1)) ** 2)
-
-        silhouette = (
-            silhouette_score(X_new, labels)
-            if len(np.unique(labels)) > 1 else 0.0
-        )
-
-        return {
-            'labels': labels,
-            'inertia': inertia,
-            'silhouette_score': silhouette
-        }
