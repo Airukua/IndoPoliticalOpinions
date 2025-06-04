@@ -8,22 +8,21 @@
 
 import math
 import re
-from typing import List, Generator
-
+from typing import List, Generator, Tuple
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-import string
 import nltk
 from nltk.corpus import stopwords
+from typing import Union, Generator
 
 nltk.download('stopwords')
 
 class DataLoader:
     """
     DataLoader is responsible for loading, validating, preprocessing,
-    and splitting CSV-based datasets for analysis and modeling.
+    and visualizing CSV-based datasets for analysis and modeling.
     """
 
     def __init__(self, file_paths: List[str]):
@@ -34,18 +33,40 @@ class DataLoader:
         """
         self.file_paths = file_paths
 
-    def load_data(self) -> Generator[pd.DataFrame, None, None]:
+    def load_data(self, merge: bool = False) -> Union[pd.DataFrame, Generator[pd.DataFrame, None, None]]:
         """
-        Generator that yields DataFrames from the specified file paths.
+        Loads dataset(s) from the file paths.
 
+        :param merge: If True, merge all files into a single DataFrame.
+                  If False, return a generator (or single DataFrame if only one file).
         :raises ValueError: If any file yields an empty DataFrame.
-        :yield: Non-empty DataFrame.
-        """
-        for file in self.file_paths:
-            df = pd.read_csv(file)
+        :return: A combined DataFrame or generator of DataFrames.
+       """
+        if len(self.file_paths) == 1:
+            df = pd.read_csv(self.file_paths[0])
             if df.empty:
-                raise ValueError(f"DataFrame is empty for file: {file}")
-            yield df
+                raise ValueError(f"DataFrame is empty for file: {self.file_paths[0]}")
+            return df
+        
+        if merge:
+            df_merge_ = {}
+            for file in self.file_paths:
+                file_name = file.split('/')[-1].replace('.csv', '')
+                df = pd.read_csv(file)
+                if df.empty:
+                    raise ValueError(f"DataFrame is empty for file: {file}")
+                df['source'] = file_name
+                df_merge_[file_name] = df
+            return pd.concat(df_merge_.values(), ignore_index=True)
+        
+        def _multi_loader():
+            for file in self.file_paths:
+                df = pd.read_csv(file)
+                if df.empty:
+                    raise ValueError(f"DataFrame is empty for file: {file}")
+                yield df
+
+        return _multi_loader()
 
     def check_unique_values(self) -> None:
         """
@@ -74,7 +95,9 @@ class DataLoader:
                 'Uniques Values': list(unique_counts.values())
             })
 
-            sns.barplot(data=data_plot, x='column', y='Uniques Values', ax=ax, palette='Set2')
+            sns.barplot(data=data_plot, x='column', y='Uniques Values', ax=ax,
+                        hue='column', palette='Set2', legend=False)
+
             ax.set_title(file.split('/')[-1])
             ax.set_xlabel('')
             ax.set_ylabel('The number of unique values')
@@ -104,6 +127,7 @@ class DataLoader:
                 raise ValueError(f"'published_at' column not found in file: {file}")
 
             df['published_at'] = pd.to_datetime(df['published_at'], errors='coerce')
+
             if df['published_at'].isnull().all():
                 raise ValueError(f"All values in 'published_at' could not be parsed in file: {file}")
 
@@ -111,9 +135,9 @@ class DataLoader:
             comment_counts = df['published_date'].value_counts().sort_index()
 
             sns.lineplot(x=comment_counts.index, y=comment_counts.values, ax=ax)
-            ax.set_title(f"Komentar per Tanggal - {file.split('/')[-1]}")
-            ax.set_xlabel("Tanggal")
-            ax.set_ylabel("Jumlah Komentar")
+            ax.set_title(f"Number of Comments by Date - {file.split('/')[-1]}")
+            ax.set_xlabel("Date")
+            ax.set_ylabel("Number of Comments")
             ax.tick_params(axis='x', rotation=45)
 
         for j in range(i + 1, len(axes)):
@@ -129,11 +153,7 @@ class DataLoader:
         :param file_path: Path to the CSV file.
         :param text_col: Name of the text column to preprocess.
         :return: DataFrame with cleaned text column.
-        :raises ValueError: If the file is not in known files or column does not exist.
         """
-        if file_path not in self.file_paths:
-            raise ValueError(f"File {file_path} is not in the list of known files.")
-        
         stop_words = set(stopwords.words('indonesian'))
 
         emoji_pattern = re.compile(
@@ -166,6 +186,7 @@ class DataLoader:
         df[text_col] = df[text_col].apply(
             lambda text: ' '.join([word for word in text.split() if word not in stop_words])
         )
+
         return df
 
     def data_splitter(
@@ -175,14 +196,14 @@ class DataLoader:
         test_size: float = 0.2,
         val_size: float = 0.1,
         random_state: int = 42
-    ):
+    ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
         Splits the dataset into training, validation, and test sets.
 
         :param df: DataFrame containing the data.
         :param text_col: Column to use for splitting.
         :param test_size: Proportion for the test set.
-        :param val_size: Proportion for the validation set (from the remaining after test split).
+        :param val_size: Proportion for the validation set (relative to train+val).
         :param random_state: Seed for reproducibility.
         :return: Tuple of (train_df, val_df, test_df)
         :raises ValueError: If text_col is not found in df.
@@ -212,6 +233,3 @@ class DataLoader:
             val_df.reset_index(drop=True),
             test_df.reset_index(drop=True)
         )
-    
-
-

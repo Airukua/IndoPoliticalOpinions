@@ -1,8 +1,18 @@
+# ------------------------------------------------------------------------------
+# MIT License
+# Copyright (c) 2025 Abdul Wahid Rukua
+#
+# This code is open-source under the MIT License.
+# See LICENSE file in the root of the repository for full license information.
+# ------------------------------------------------------------------------------
+
 import pandas as pd
 import numpy as np
 import os
 from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
+import re
+from collections import Counter
 
 class ClusterPostProcessor:
     """
@@ -61,5 +71,92 @@ class ClusterPostProcessor:
         for cluster_id, group_df in self.cluster_groups.items():
             filename = os.path.join(self.output_dir, f'cluster_{cluster_id}.csv')
             group_df.to_csv(filename, index=False)
-
     
+
+class ClusterKeywordExtractor:
+    """
+    Extracts top keywords from text data in clustered CSV files and summarizes them in an output CSV.
+    """
+
+    def __init__(self, cluster_folder: str, text_column: str = 'text', top_n: int = 10, output_file: str = 'top_keywords_per_cluster.csv'):
+        """
+        Initializes the extractor with the directory of cluster CSV files and configuration.
+
+        Args:
+            cluster_folder (str): Path to the folder containing clustered CSV files.
+            text_column (str): Name of the text column to analyze.
+            top_n (int): Number of top keywords to extract per cluster.
+            output_file (str): Path for saving the output CSV summary.
+        """
+        self.cluster_folder = cluster_folder
+        self.text_column = text_column
+        self.top_n = top_n
+        self.output_file = output_file
+
+    def _extract_top_keywords(self, texts: pd.Series) -> list[str]:
+        """
+        Extracts the top N most frequent words from a pandas Series of text.
+
+        Args:
+            texts (pd.Series): Series of textual data.
+
+        Returns:
+            List of top N words (without frequency).
+        """
+        combined_text = ' '.join(texts.astype(str)).lower()
+        tokens = re.findall(r'\b\w+\b', combined_text)
+        frequency = Counter(tokens)
+        return [word for word, _ in frequency.most_common(self.top_n)]
+
+    def extract_and_save(self) -> None:
+        """
+        Extracts keywords from each cluster file and writes the results to a CSV summary.
+        """
+        summary_data = []
+
+        for filename in sorted(os.listdir(self.cluster_folder)):
+            if not (filename.endswith('.csv') and filename.startswith('cluster_')):
+                continue
+
+            cluster_id = self._get_cluster_id(filename)
+            filepath = os.path.join(self.cluster_folder, filename)
+            df = pd.read_csv(filepath)
+
+            if self.text_column not in df.columns:
+                print(f"Skipping '{filename}': Missing column '{self.text_column}'.")
+                continue
+
+            top_keywords = self._extract_top_keywords(df[self.text_column])
+            summary_data.append(self._format_summary_row(cluster_id, top_keywords))
+
+        pd.DataFrame(summary_data).to_csv(self.output_file, index=False)
+        print(f"[✓] Top keywords saved to '{self.output_file}'")
+
+    @staticmethod
+    def _get_cluster_id(filename: str) -> int:
+        """
+        Extracts the cluster ID from a filename.
+
+        Args:
+            filename (str): Name of the cluster file.
+
+        Returns:
+            Integer cluster ID.
+        """
+        return int(filename.removeprefix('cluster_').removesuffix('.csv'))
+
+    def _format_summary_row(self, cluster_id: int, keywords: list[str]) -> dict:
+        """
+        Formats a single row of top keywords for the summary.
+
+        Args:
+            cluster_id (int): The ID of the cluster.
+            keywords (list): List of keywords.
+
+        Returns:
+            Dictionary for one row of the summary DataFrame.
+        """
+        row = {'cluster': cluster_id}
+        for i, word in enumerate(keywords, start=1):
+            row[f'keyword_{i}'] = word
+        return row
