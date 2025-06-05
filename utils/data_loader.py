@@ -146,7 +146,7 @@ class DataLoader:
         plt.tight_layout()
         plt.show()
 
-    def data_preprocessor(self, file_path: str, text_col: str) -> pd.DataFrame:
+    def data_preprocessor(self, df: pd.DataFrame, text_col: str) -> pd.DataFrame:
         """
         Preprocesses text data by removing emojis, digits, special characters, and excessive whitespace.
 
@@ -154,6 +154,10 @@ class DataLoader:
         :param text_col: Name of the text column to preprocess.
         :return: DataFrame with cleaned text column.
         """
+
+        if text_col not in df.columns:
+            raise ValueError(f"'{text_col}' column not found in DataFrame.")
+        
         stop_words = set(stopwords.words('indonesian'))
 
         emoji_pattern = re.compile(
@@ -171,10 +175,7 @@ class DataLoader:
             flags=re.UNICODE
         )
 
-        df = pd.read_csv(file_path)
-        if text_col not in df.columns:
-            raise ValueError(f"'{text_col}' column not found in file: {file_path}")
-
+        df = df.copy()
         df[text_col] = (
             df[text_col].astype(str)
             .str.lower()
