@@ -10,9 +10,11 @@ import pandas as pd
 import numpy as np
 import os
 from sklearn.cluster import KMeans
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sentence_transformers import SentenceTransformer
 import re
 from collections import Counter
+from utils.dimention_reduction import reduce_dimensions_umap
+from matplotlib import pyplot as plt
 
 class ClusterPostProcessor:
     """
@@ -29,7 +31,7 @@ class ClusterPostProcessor:
         self.df = df.copy()
         self.text_column = text_column
         self.output_dir = output_dir
-        self.vectorizer = TfidfVectorizer()
+        self.vectorizer = SentenceTransformer('firqaaa/indo-sentence-bert-base')  
         self.X = None
         self.kmeans = None
         self.clustered_df = None
@@ -51,7 +53,8 @@ class ClusterPostProcessor:
 
     def _vectorize_text(self):
         texts = self.df[self.text_column].astype(str).tolist()
-        self.X = self.vectorizer.fit_transform(texts)
+        self.X = self.vectorizer.encode(texts, show_progress_bar=True)
+        self.X = reduce_dimensions_umap(self.X, metric='cosine')
 
     def _fit_kmeans(self):
         self.kmeans = KMeans(n_clusters=self.best_k, random_state=42)
@@ -71,6 +74,19 @@ class ClusterPostProcessor:
         for cluster_id, group_df in self.cluster_groups.items():
             filename = os.path.join(self.output_dir, f'cluster_{cluster_id}.csv')
             group_df.to_csv(filename, index=False)
+
+    def plot_clusters(self):
+        if self.X is None or self.kmeans is None:
+            raise RuntimeError("Run the clustering pipeline first.")
+
+        plt.figure(figsize=(8, 6))
+        scatter = plt.scatter(self.X[:, 0], self.X[:, 1], c=self.kmeans.labels_, cmap='tab10', s=50)
+        plt.title('UMAP projection with KMeans Clusters')
+        plt.xlabel('UMAP Dimension 1')
+        plt.ylabel('UMAP Dimension 2')
+        plt.colorbar(scatter, label='Cluster')
+        plt.grid(True)
+        plt.show()
     
 
 class ClusterKeywordExtractor:

@@ -5,3 +5,9 @@ scikit-learn
 nltk
 numpy
 wordcloud
+gensim
+sentence-transformers
+hdbscan
+umap-learn
+tqdm
+scipy

@@ -148,48 +148,30 @@ class DataLoader:
 
     def data_preprocessor(self, df: pd.DataFrame, text_col: str) -> pd.DataFrame:
         """
-        Preprocesses text data by removing emojis, digits, special characters, and excessive whitespace.
-
-        :param file_path: Path to the CSV file.
-        :param text_col: Name of the text column to preprocess.
-        :return: DataFrame with cleaned text column.
+        Preprocess text data more gently by:
+        - Lowercasing text
+        - Removing URLs, mentions, and HTML tags
+        - Removing excessive whitespace
+        :param df: Input DataFrame
+        :param text_col: Name of the text column to preprocess
+        :return: DataFrame with cleaned text column
         """
 
         if text_col not in df.columns:
             raise ValueError(f"'{text_col}' column not found in DataFrame.")
         
-        stop_words = set(stopwords.words('indonesian'))
-
-        emoji_pattern = re.compile(
-            r"["
-            u"\U0001F600-\U0001F64F"
-            u"\U0001F300-\U0001F5FF"
-            u"\U0001F680-\U0001F6FF"
-            u"\U0001F1E0-\U0001F1FF"
-            u"\u2700-\u27BF"
-            u"\U0001F900-\U0001F9FF"
-            u"\U0001FA70-\U0001FAFF"
-            u"\u2600-\u26FF"
-            u"\u2300-\u23FF"
-            r"]+",
-            flags=re.UNICODE
-        )
+        def clean_text(text):
+            text = text.lower()
+            text = re.sub(r'http\S+|www.\S+', '', text)
+            text = re.sub(r'@\w+', '', text)
+            text = re.sub(r'<.*?>', '', text)
+            text = re.sub(r'\s+', ' ', text).strip()
+            return text
 
         df = df.copy()
-        df[text_col] = (
-            df[text_col].astype(str)
-            .str.lower()
-            .str.replace(emoji_pattern, ' ', regex=True)
-            .str.replace(r'[\d\W_]+', ' ', regex=True)
-            .str.replace(r'\s+', ' ', regex=True)
-        )
-
-        df[text_col] = df[text_col].apply(
-            lambda text: ' '.join([word for word in text.split() if word not in stop_words])
-        )
-
+        df[text_col] = df[text_col].apply(clean_text)
         return df
-
+    
     def data_splitter(
         self,
         df: pd.DataFrame,
