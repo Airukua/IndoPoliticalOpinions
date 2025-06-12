@@ -14,6 +14,8 @@ from gensim import corpora
 from gensim.models.ldamulticore import LdaMulticore
 from gensim.models import CoherenceModel
 import re
+import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 nltk.download('punkt')
 nltk.download('stopwords')

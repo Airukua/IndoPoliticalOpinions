@@ -59,7 +59,7 @@ def plot_cluster_hdbcsan(cluster_df: pd.DataFrame, exclude_cols = ['author', 'te
         plt.subplot(n_rows, n_cols, i)
         if cluster_df[col].dtype == 'object':
             sns.countplot(y=cluster_df[col], order=cluster_df[col].value_counts().index)
-            plt.title(f'Category Distribution {col}')
+            plt.title(f'Category Distribution of {col}')
         else:
             plt.hist(cluster_df[col], bins=30, color='skyblue', edgecolor='black')
             plt.title(f'Distribution of {col}')
