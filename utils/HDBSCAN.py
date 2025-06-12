@@ -24,11 +24,12 @@ class HDBSCANClusterer:
         A distance threshold for cluster selection. Clusters below this threshold are merged.
     """
 
-    def __init__(self, min_cluster_size=None, min_samples=None, cluster_selection_epsilon=0.0):
+    def __init__(self, min_cluster_size=None, min_samples=None, cluster_selection_epsilon=0.0, metrics='jaccard'):
         self.min_cluster_size = min_cluster_size
         self.min_samples = min_samples
         self.cluster_selection_epsilon = cluster_selection_epsilon
         self.model = None
+        self.metrics = metrics
 
     def fit(self, data):
         """
@@ -47,7 +48,8 @@ class HDBSCANClusterer:
         self.model = hdbscan.HDBSCAN(
             min_cluster_size=self.min_cluster_size,
             min_samples=self.min_samples,
-            cluster_selection_epsilon=self.cluster_selection_epsilon
+            cluster_selection_epsilon=self.cluster_selection_epsilon, 
+            metric=self.metrics
         ).fit(data)
         return self.model
 
@@ -112,7 +114,8 @@ class HDBSCANClusterer:
                     model = hdbscan.HDBSCAN(
                         min_cluster_size=min_cluster_size,
                         min_samples=min_samples,
-                        cluster_selection_epsilon=self.cluster_selection_epsilon
+                        cluster_selection_epsilon=self.cluster_selection_epsilon,
+                        metric=self.metrics
                     ).fit(data)
 
                     labels = model.labels_
