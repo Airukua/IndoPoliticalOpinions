@@ -1,3 +1,11 @@
+# ------------------------------------------------------------------------------
+# MIT License
+# Copyright (c) 2025 Abdul Wahid Rukua
+#
+# This code is open-source under the MIT License.
+# See LICENSE file in the root of the repository for full license information.
+# ------------------------------------------------------------------------------
+
 from googleapiclient.discovery import build
 import pandas as pd
 from typing import Dict, List, Optional

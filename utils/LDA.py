@@ -1,3 +1,11 @@
+# ------------------------------------------------------------------------------
+# MIT License
+# Copyright (c) 2025 Abdul Wahid Rukua
+#
+# This code is open-source under the MIT License.
+# See LICENSE file in the root of the repository for full license information.
+# ------------------------------------------------------------------------------
+
 import nltk
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from nltk.corpus import stopwords

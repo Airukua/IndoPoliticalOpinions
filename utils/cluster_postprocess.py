@@ -19,7 +19,8 @@ from matplotlib import pyplot as plt
 class ClusterPostProcessor:
     """
     Full post-processing pipeline for KMeans clustering:
-    - TF-IDF vectorization
+    - Sentence BERT vectorization
+    - Dimensionality reduction with UMAP
     - Fit KMeans
     - Assign cluster labels
     - Split into clusters

@@ -1,3 +1,11 @@
+# ------------------------------------------------------------------------------
+# MIT License
+# Copyright (c) 2025 Abdul Wahid Rukua
+#
+# This code is open-source under the MIT License.
+# See LICENSE file in the root of the repository for full license information.
+# ------------------------------------------------------------------------------
+
 import umap.umap_ as umap
 
 def reduce_dimensions_umap(data, n_components=2, n_neighbors=15, min_dist=0.1, metric='euclidean', random_state=None):
