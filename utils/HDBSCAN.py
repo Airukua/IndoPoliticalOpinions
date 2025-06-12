@@ -8,6 +8,8 @@
 
 import numpy as np
 import hdbscan
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 
 class HDBSCANClusterer:
     """
@@ -16,20 +18,22 @@ class HDBSCANClusterer:
     Parameters
     ----------
     min_cluster_size : int, optional
-        The minimum size of clusters; single linkage splits that contain fewer points than this will be
-        considered points "falling out" of a cluster rather than a cluster splitting into two new clusters.
+        The minimum size of clusters.
     min_samples : int, optional
         The number of samples in a neighborhood for a point to be considered a core point.
     cluster_selection_epsilon : float, default=0.0
         A distance threshold for cluster selection. Clusters below this threshold are merged.
+    metrics : str, default='jaccard'
+        Distance metric to use with HDBSCAN.
     """
 
     def __init__(self, min_cluster_size=None, min_samples=None, cluster_selection_epsilon=0.0, metrics='jaccard'):
         self.min_cluster_size = min_cluster_size
         self.min_samples = min_samples
         self.cluster_selection_epsilon = cluster_selection_epsilon
-        self.model = None
         self.metrics = metrics
+        self.model = None
+        self.data = None
 
     def fit(self, data):
         """
@@ -45,10 +49,11 @@ class HDBSCANClusterer:
         model : hdbscan.HDBSCAN
             The fitted HDBSCAN model instance.
         """
+        self.data = data  
         self.model = hdbscan.HDBSCAN(
             min_cluster_size=self.min_cluster_size,
             min_samples=self.min_samples,
-            cluster_selection_epsilon=self.cluster_selection_epsilon, 
+            cluster_selection_epsilon=self.cluster_selection_epsilon,
             metric=self.metrics
         ).fit(data)
         return self.model
@@ -84,13 +89,12 @@ class HDBSCANClusterer:
             "n_clusters": n_clusters,
             "n_noise": n_noise,
             "cluster_sizes": cluster_sizes,
-            "labels": self.model.labels_
+            "labels": labels
         }
 
     def hyperparameter_search(self, data, min_cluster_sizes, min_samples_list):
         """
         Perform a simple grid search over min_cluster_size and min_samples parameters.
-        Evaluation is based on maximizing the number of clusters and minimizing noise.
 
         Parameters
         ----------
@@ -139,3 +143,29 @@ class HDBSCANClusterer:
 
         print(f"\nBest Parameters: {best_result}")
         return best_result
+
+    def visualize(self):
+        """
+        Visualize the clustering results using PCA for dimensionality reduction.
+
+        Returns
+        -------
+        None
+        """
+        if self.model is None or self.data is None:
+            raise ValueError("Model has not been fitted or data is not available.")
+
+        labels = self.model.labels_
+        pca = PCA(n_components=2)
+        try:
+            reduced_data = pca.fit_transform(self.data)
+        except Exception as e:
+            raise ValueError(f"Error reducing dimensionality with PCA: {e}")
+
+        plt.figure(figsize=(10, 8))
+        scatter = plt.scatter(reduced_data[:, 0], reduced_data[:, 1], c=labels, cmap='Spectral', s=50)
+        plt.colorbar(scatter, label='Cluster Label')
+        plt.title('HDBSCAN Clustering Results')
+        plt.xlabel('PCA Component 1')
+        plt.ylabel('PCA Component 2')
+        plt.show()
