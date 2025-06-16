@@ -1,0 +1,3 @@
+[submodule "NLP_bahasa_resources"]
+	path = NLP_bahasa_resources
+	url = https://github.com/louisowen6/NLP_bahasa_resources.git
