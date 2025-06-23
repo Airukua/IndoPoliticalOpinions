@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 from scrapper.scrapper_data import fetch_and_save_comments
+from utils.data_loader import DataLoader
 
 def parse_video_map(video_args):
     video_map = {}
@@ -11,6 +12,7 @@ def parse_video_map(video_args):
         video_id, filename = pair.split('=', 1)
         video_map[video_id] = filename
     return video_map
+
 
 def main():
     parser = argparse.ArgumentParser(description="Fetch and anonymize YouTube video comments.")

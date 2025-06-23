@@ -25,7 +25,7 @@ stemmer = factory.create_stemmer()
 stop_words = set(stopwords.words('indonesian'))
 
 class LDAProcessor:
-    def __init__(self, df, text_column='text', num_topics=10, passes=10, workers=2):
+    def __init__(self, df, text_column='text', num_topics=10, passes=10, workers=2, custom_stopwords=None):
         """
         Initializes the LDAProcessor with a DataFrame and parameters for topic modeling.
 
@@ -45,6 +45,12 @@ class LDAProcessor:
         self.corpus = None
         self.dictionary = None
 
+        if custom_stopwords is not None:
+            if not isinstance(custom_stopwords, list):
+                raise ValueError('[INFO] file must be a list')
+        
+        self.custom_stopwords = custom_stopwords or []
+
     @staticmethod
     def _cleaning(text):
         """
@@ -59,10 +65,12 @@ class LDAProcessor:
         """
         if not isinstance(text, str):
             return ''
+
         text = text.lower()
-        text = re.sub(r'[^\x00-\x7F]+', ' ', text)       # Remove non-ASCII (e.g., emoji)
-        text = re.sub(r'[\W_]+', ' ', text)              # Remove punctuation and symbols
-        text = re.sub(r'\s+', ' ', text).strip()         # Normalize whitespace
+        text = re.sub(r'[^\x00-\x7F]+', ' ', text)
+        text = re.sub(r'\d+','',text)
+        text = re.sub(r'[\W_]+', ' ', text)
+        text = re.sub(r'\s+', ' ', text).strip()
         return text
 
     def _preprocess_text(self):
@@ -75,7 +83,8 @@ class LDAProcessor:
         """
         cleaned = self.df[self.text_column].apply(self._cleaning)
         tokens = cleaned.apply(word_tokenize)
-        filtered = tokens.apply(lambda words: [t for t in words if t.isalpha() and t not in stop_words])
+        filtered_custom = tokens.apply(lambda words: [w for w in words if w not in self.custom_stopwords])
+        filtered = filtered_custom.apply(lambda words: [t for t in words if t.isalpha() and t not in stop_words])
         stemmed = filtered.apply(lambda words: [stemmer.stem(t) for t in words])
         return stemmed
 
